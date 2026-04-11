@@ -1,0 +1,239 @@
+---
+title: "02_regression_discont"
+output: html_document
+---
+
+## Library
+
+```{r}
+pacman::p_load(
+  dplyr,
+  DBI,
+  RPostgres,
+  ggplot2,
+  sandwich,
+  lmtest,
+  broom,
+  ggh4x,
+  tidyr, 
+  stringr
+)
+```
+
+## Load .env
+
+```{r}
+readRenviron("../.Renviron")
+user <- Sys.getenv("username")
+pw <- Sys.getenv("password")
+
+```
+
+## Connecting to RDS
+
+```{r}
+conn <- dbConnect(RPostgres::Postgres(),
+                 host = "endgbv-database.cx62ou6gkd87.us-east-2.rds.amazonaws.com",
+                 port = 5432,
+                 dbname = "postgres",
+                 user = user,
+                 password = pw)
+
+```
+
+## RD with Nonimputed Data
+
+How did COVID-19 restrictions effect domestic violence incidents?
+
+
+```{r}
+# nyc reopening dates
+phase_one <- as.Date("2020-06-8")
+phase_two <- as.Date("2020-06-22")
+phase_three <- as.Date("2020-07-6")
+phase_four <- as.Date("2020-07-20")
+
+
+# lazy connect to RDS
+nonimputed_tbl <- tbl(conn, "nonimputed_tbl")
+```
+
+#### 1st Stage
+
+```{r}
+# use dplyr to transform data
+nonimputed_first <- nonimputed_tbl %>% 
+  mutate(
+    `Report Date` = sql("TO_DATE(\"Report Date\", 'MM/DD/YYYY')"),
+    phase = case_when(
+      `Report Date` < phase_one ~ 0,
+      `Report Date` >= phase_one & `Report Date` < phase_two ~ 1,
+      `Report Date` >= phase_two & `Report Date` < phase_three ~ 2,
+      `Report Date` >= phase_three & `Report Date` < phase_four ~ 3,
+      `Report Date` >= phase_four ~ 4
+    ),
+    running_var = `Report Date` - phase_one, 
+    running_var_bin = round(running_var, -1)
+  ) %>% 
+  filter(running_var_bin > - 150 & running_var_bin < 230) %>%
+  select(running_var_bin, phase) %>%
+  distinct() %>%
+  collect()
+
+# 1st stage plot
+
+ggplot(nonimputed_first, aes(x = running_var_bin, y = phase)) +
+  geom_line() +
+  geom_point(aes(fill = phase), shape = 21, size = 2) +
+  labs(
+    x = "Days Relative to COVID-19 Reopening",
+    y = "NYC COVID-19 Reopening Phase",
+    title = "Regression Discontinuity: 1st Stage",
+    caption = "Using nonimputed Data"
+  ) +
+  annotate(
+    "rect",
+    xmin = 0, xmax = 73,
+    ymin = 0, ymax = 4,
+    fill = "lightblue",
+    alpha = 0.5
+  ) +
+  scale_fill_gradient(low = "darkblue", high = "lightblue") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+```
+#### Reduced Form
+
+```{r}
+# use dplyr to transform data
+nonimputed_reduced <- nonimputed_tbl %>% 
+  mutate(
+    `Report Date` = sql("TO_DATE(\"Report Date\", 'MM/DD/YYYY')"),
+    running_var = `Report Date` - phase_one, 
+    running_var_bin = round(running_var, -1),
+    `Offense Type` = ifelse(`Offense Type` == "DIR", "DOMESTIC INCIDENT REPORT", `Offense Type`),
+    `Intimate Relationship Flag` = ifelse(`Intimate Relationship Flag` == "Yes", "PARTNER", "NON-PARTNER")
+  ) %>% 
+  filter(running_var_bin > - 150 & running_var_bin < 230) %>%
+  group_by(running_var_bin, `Offense Type`, `Intimate Relationship Flag`) %>%
+  count() %>%
+  collect()
+
+# reduced form plot
+nonimputed_reduced %>%
+  ggplot(aes(x = running_var_bin, y = n)) +
+  annotate(
+    "rect",
+    xmin = 0, xmax = 73,
+    ymin = 0, ymax = Inf,
+    fill = "lightblue",
+    alpha = 0.5
+  ) +
+  geom_point(shape = 21, size = 2, fill = "lightblue") +
+  geom_smooth(se = F) +
+  facet_grid2(`Intimate Relationship Flag`~`Offense Type`, scales = "free", independent = "all") +
+  theme_minimal() +
+  labs(
+    x = "Days Relative to COVID-19 Reopening",
+    y = "Domestic Violence Incidents",
+    title = "Regression Discontinuity: Reduced Form",
+    caption = "Using nonimputed Data"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+```
+
+#### Model
+
+```{r}
+# run RD models
+
+mod1 <- lm(
+  phase ~ running_var_bin*indicator,
+  data = nonimputed_first %>%
+    mutate(
+      indicator = ifelse(running_var_bin >= 0 , 1, 0)
+    ) 
+)
+
+mod_first <- coeftest(
+  mod1, 
+  vcov = vcovCL(mod1, cluster = nonimputed_first$running_var_bin, type = "HC0")
+) %>% 
+  tidy() %>%
+  mutate(model = "First Stage") 
+
+# function for reduced form
+
+reduced_model <- function(type, partner) {
+  mod <- lm(
+    n ~ running_var_bin*indicator,
+    data = nonimputed_reduced %>%
+      mutate(
+        indicator = ifelse(running_var_bin >= 0 , 1, 0),
+        n = as.numeric(n)
+      ) %>%
+      filter(`Offense Type` == sym(!!type), `Intimate Relationship Flag` == sym(!!partner))
+  )
+  
+  mod_df <- coeftest(
+      mod, 
+      vcov = vcovCL(mod, cluster = nonimputed_reduced %>% 
+                      filter(`Offense Type` == sym(!!type), `Intimate Relationship Flag` == sym(!!partner) ) %>% 
+                      pull(running_var_bin), 
+                    type = "HC0")
+    ) %>%
+      tidy() %>%
+      mutate(
+        offense_type = !!type,
+        partner_flag = !!partner
+      )
+  
+  return(mod_df)
+}
+
+# extract coef for each reduced form
+
+model_df <- data.frame(matrix(ncol = 7, nrow = 0))
+
+for (offense in unique(nonimputed_reduced$`Offense Type`)) {
+  for (flag in unique(nonimputed_reduced$`Intimate Relationship Flag`)) {
+    temp <- reduced_model(type =  offense, partner = flag)
+    model_df <- rbind(model_df, temp)
+  }
+}
+
+# forest plot
+
+model_df %>%
+  filter(term %in% c("indicator", "running_var_bin:indicator")) %>%
+  mutate(
+    term = ifelse(term == "indicator", "Reopening \nIndicator", "Interaction\nTerm"),
+    offense_type = ifelse(offense_type == "DOMESTIC INCIDENT REPORT", "DOMESTIC INCIDENT \nREPORT", offense_type),
+    conf.low =  estimate - 1.96*std.error,
+    conf.high = estimate + 1.96*std.error,
+    signif = p.value < 0.05
+  ) %>%
+  ggplot(aes(x = estimate, y = term)) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high, col = signif)) + 
+  geom_vline(aes(xintercept = 0), linetype = "dashed", alpha = 0.1) +
+  facet_grid(partner_flag ~ offense_type, scales = "free") +
+  theme_minimal() +
+  labs(
+    x = "Estimate",
+    y = "",
+    title = "Reduced Form Models",
+    col = "Significance"
+  ) +
+  scale_color_manual(values = c("black", "lightblue")) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5)
+  )
+  
+```
+
