@@ -1,5 +1,5 @@
 ---
-title: "02_regression_discont"
+title: "02_non_imputed_RD"
 output: html_document
 ---
 
