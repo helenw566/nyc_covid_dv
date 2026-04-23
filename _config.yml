@@ -1,3 +1,5 @@
 theme: minima
-title: "COVID-19 & Domestic Violence in NYC"
-description: "A Regression Discontinuity Analysis"
+title: "Analyzing COVID-19 and Domestic Violence Incidence using Regression Discontinuity Analysis"
+description: "By Elisha Clark, Kaitlyn Vana, Helen Wang, and Emily Zhao"
+header_pages:
+  - index.md
