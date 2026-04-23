@@ -79,7 +79,7 @@ ARM could help us connect the dots among the disparate data points we've uncover
 
 ![](https://cdn.prod.website-files.com/65d609edcc331dd0e4eb519b/683e5357b029e44c78368470_AD_4nXfxlXT3frqYTWxta-cGGwr-MeeOYAneTUrKViqRVyOJlQQphBEdNM1k9jMbq1KZhMpwBXdsGz3Kz3_wvSycetBe5AI8hQgF1uk9QsI-RQLqqwk2zOR0RZWWT38T16YSzfR_6LGUgA.png)
 
-📄 Read the full paper and findings: [https://docs.google.com/document/d/11QdBIkEtnfLkyXqr9essXRWYaN377QNEQaGc3R5cyEk/edit?usp=sharing](#)
+📄 Read the full paper and findings: [[https://docs.google.com/document/d/11QdBIkEtnfLkyXqr9essXRWYaN377QNEQaGc3R5cyEk/edit?usp=sharing](https://docs.google.com/document/d/11QdBIkEtnfLkyXqr9essXRWYaN377QNEQaGc3R5cyEk/edit?usp=sharing)](#)
 
 ---
 
