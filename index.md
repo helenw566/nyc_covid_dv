@@ -1,4 +1,3 @@
-# Analyzing COVID-19 and Domestic Violence Incidence using Regression Discontinuity Analysis
 
 **By Elisha Clark, Kaitlyn Vana, Helen Wang, and Emily Zhao**
 
