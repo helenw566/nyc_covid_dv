@@ -22,7 +22,10 @@ For our project, we pulled data from NYC Open Data's ENDGBV: The Intersection of
 
 We were missing data for some variables, as seen in Figure 1:
 
-![Figure 1: % of Missing Data by Variable](figures/figure1.png)
+<figure>
+  <img src="figures/figure1.png" alt="Figure 1: % of Missing Data by Variable">
+  <figcaption>Figure 1. % of Missing Data by Variable</figcaption>
+</figure>
 
 For our purposes, given the volume of missing data, we elected to drop all age variables and impute the remainder using the most frequent value. To ensure that this imputation process wouldn't significantly affect our results, we replicated analyses with both the imputed and nonimputed dataset.
 
@@ -32,7 +35,10 @@ For our purposes, given the volume of missing data, we elected to drop all age v
 
 To see if COVID Reopening had a significant effect on Domestic Violence Rates, we used a Fuzzy Regression Discontinuity Design to evaluate the effects. Regression Discontinuity is a quasi-experimental framework that evaluates the effect of an intervention (in this case, COVID-19 Reopening) by comparing observations (i.e. Domestic Violence Report Incidents) before and after the cutoff point where the intervention was implemented. In this case, we chose a "Fuzzy" design, as the policy wasn't implemented immediately and was established in phases, meaning that re-opening occurred gradually rather than at once.
 
-![Figure 2: NYC COVID-19 Reopening Phases](figures/figure2.png)
+<figure>
+  <img src="figures/figure2.png" alt="Figure 2: NYC COVID-19 Reopening Phases">
+  <figcaption>Figure 2. NYC COVID-19 Reopening Phases</figcaption>
+</figure>
 
 If you look at Figure 2, for example, we see that reopening occurred slowly in phases across the area shaded in blue, with Phase One starting on June 8th of 2020 and Phase Four starting on July 20th of 2020. In our models, we used the Phase One date as the cutoff for when re-opening began to occur.
 
@@ -43,7 +49,10 @@ In our data, there are three main offense categories that are further broken dow
 
 The distribution of incidents by offense type can be seen below in Figure 3:
 
-![Figure 3: Distribution of Incidents by Offense Type](figures/figure3.png)
+<figure>
+  <img src="figures/figure3.png" alt="Figure 3: Distribution of Incidents by Offense Type">
+  <figcaption>Figure 3. Distribution of Incidents by Offense Type</figcaption>
+</figure>
 
 We choose to model offense types separately by non-partner and partner offenders in our study to highlight specific trends and characteristics in domestic violence incident reports. As such, we fit 6 different regression discontinuity models. The code used to conduct these analyses can be accessed at this [github repository](#).
 
@@ -55,7 +64,10 @@ Figure 4 displays our regression discontinuity results for each category. Each c
 
 The most robust discontinuities among these graphs appear in the most severe offense categories (rape and felony assault). This suggests that reopening rather than the initial lockdown was the inflection point at which these violent crime instances increased, particularly with non-partner crimes. Partner and non-partner felony assault also follow this pattern with less severity. Domestic Incident Reporting has a weaker trend and presents the absence of a trend with relationship to re-opening phases.
 
-![Figure 4: Regression discontinuity reduced-form plots of DV incident counts by offense type (columns) and offender-victim relationship (rows)](figures/figure4.png)
+<figure>
+  <img src="figures/figure4.png" alt="Figure 4: Regression Discontinuity Plots">
+  <figcaption>Figure 4. Regression discontinuity reduced-form plots of DV incident counts by offense type (columns) and offender-victim relationship (rows)</figcaption>
+</figure>
 
 ---
 
